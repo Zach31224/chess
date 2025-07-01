@@ -1,38 +1,50 @@
 package chess;
 
-/**
- * Represents moving a chess piece on a chessboard
- * <p>
- * Note: You can add to this class, but you may not alter
- * signature of the existing methods.
- */
+import chess.ChessPiece;
+import chess.ChessPosition;
+
+import java.util.Objects;
+
 public class ChessMove {
 
-    public ChessMove(ChessPosition startPosition, ChessPosition endPosition,
-                     ChessPiece.PieceType promotionPiece) {
+    private final ChessPosition from;
+    private final ChessPosition to;
+    private final ChessPiece.PieceType promoteTo;
+
+    public ChessMove(ChessPosition from, ChessPosition to, ChessPiece.PieceType promoteTo) {
+        this.from = from;
+        this.to = to;
+        this.promoteTo = promoteTo;
     }
 
-    /**
-     * @return ChessPosition of starting location
-     */
     public ChessPosition getStartPosition() {
-        throw new RuntimeException("Not implemented");
+        return from;
     }
 
-    /**
-     * @return ChessPosition of ending location
-     */
     public ChessPosition getEndPosition() {
-        throw new RuntimeException("Not implemented");
+        return to;
     }
 
-    /**
-     * Gets the type of piece to promote a pawn to if pawn promotion is part of this
-     * chess move
-     *
-     * @return Type of piece to promote a pawn to, or null if no promotion
-     */
     public ChessPiece.PieceType getPromotionPiece() {
-        throw new RuntimeException("Not implemented");
+        return promoteTo;
+    }
+
+    @Override
+    public String toString() {
+        return "Move{" + "from=" + from + ", to=" + to + ", promotion=" + promoteTo + '}';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof ChessMove other)) return false;
+        return Objects.equals(from, other.from) &&
+                Objects.equals(to, other.to) &&
+                promoteTo == other.promoteTo;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(from, to, promoteTo);
     }
 }

@@ -1,29 +1,39 @@
 package chess;
 
-/**
- * Represents a single square position on a chess board
- * <p>
- * Note: You can add to this class, but you may not alter
- * signature of the existing methods.
- */
+import java.util.Objects;
+
 public class ChessPosition {
 
-    public ChessPosition(int row, int col) {
+    private final int rank;
+    private final int file;
+
+    public ChessPosition(int rank, int file) {
+        this.rank = rank;
+        this.file = file;
     }
 
-    /**
-     * @return which row this position is in
-     * 1 codes for the bottom row
-     */
     public int getRow() {
-        throw new RuntimeException("Not implemented");
+        return rank;
     }
 
-    /**
-     * @return which column this position is in
-     * 1 codes for the left row
-     */
     public int getColumn() {
-        throw new RuntimeException("Not implemented");
+        return file;
+    }
+
+    @Override
+    public String toString() {
+        return "(" + rank + ", " + file + ")";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof ChessPosition other)) return false;
+        return rank == other.rank && file == other.file;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(rank, file);
     }
 }
