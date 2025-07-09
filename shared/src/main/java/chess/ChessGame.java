@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Objects;
 
 /**
- * For a class that can manage a chess game, making moves on a board
+ *  Manages the logic of a chess game, including moves, turns, check, checkmate, and stalemate.
  * <p>
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
@@ -46,7 +46,7 @@ public class ChessGame {
     }
 
     /**
-     * Gets a valid moves for a piece at the given location
+     * Gets all valid and legal moves for a piece at the given location
      *
      * @param startPosition the piece to get valid moves for
      * @return Set of valid moves for requested piece, or null if no piece at
@@ -241,7 +241,8 @@ public class ChessGame {
     public ChessBoard getBoard() {
         return board;
     }
-
+    /** correct implementation of hashCode
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
