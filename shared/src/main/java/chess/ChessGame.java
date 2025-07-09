@@ -1,7 +1,11 @@
 package chess;
 
 import java.util.Collection;
+import java.util.HashSet;
 
+/**
+ * For a class that can manage a chess game, making moves on a board
+ */
 public class ChessGame {
 
     private ChessBoard board;
@@ -42,7 +46,31 @@ public class ChessGame {
      * startPosition
      */
     public Collection<ChessMove> validMoves(ChessPosition startPosition) {
-        throw new RuntimeException("Not implemented");
+        ChessPiece selectedPiece = board.getPiece(startPosition);
+        if (selectedPiece == null) {
+            return null;
+        }
+
+        HashSet<ChessMove> candidateMoves = (HashSet<ChessMove>) selectedPiece.pieceMoves(board, startPosition);
+        HashSet<ChessMove> legalMoves = new HashSet<>();
+
+        for (ChessMove move : candidateMoves) {
+            ChessPiece capturedPiece = board.getPiece(move.getEndPosition());
+
+            // Simulate move
+            board.addPiece(startPosition, null);
+            board.addPiece(move.getEndPosition(), selectedPiece);
+
+            if (!isInCheck(selectedPiece.getTeamColor())) {
+                legalMoves.add(move);
+            }
+
+            // Undo move
+            board.addPiece(move.getEndPosition(), capturedPiece);
+            board.addPiece(startPosition, selectedPiece);
+        }
+
+        return legalMoves;
     }
 
     /**
@@ -85,12 +113,12 @@ public class ChessGame {
     public boolean isInStalemate(TeamColor teamColor) {
         for (int row = 1; row <= 8; row++) {
             for (int col = 1; col <= 8; col++) {
-                ChessPosition pos = new ChessPosition(row, col);
-                ChessPiece piece = board.getPiece(pos);
+                ChessPosition position = new ChessPosition(row, col);
+                ChessPiece piece = board.getPiece(position);
 
                 if (piece != null && piece.getTeamColor() == teamColor) {
-                    Collection<ChessMove> possibleMoves = validMoves(pos);
-                    if (possibleMoves != null && !possibleMoves.isEmpty()) {
+                    Collection<ChessMove> moves = validMoves(position);
+                    if (moves != null && !moves.isEmpty()) {
                         return false;
                     }
                 }
