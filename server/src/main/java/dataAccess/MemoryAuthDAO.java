@@ -1,47 +1,62 @@
 package dataAccess;
 
-import model.AuthData;
+import model.UserData;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MemoryAuthDAO implements AuthDAO {
-    private final Map<String, AuthData> authDatabase;  // Key: authToken, Value: AuthData
+public class MemoryUserDAO implements UserDAO {
+    private final Map<String, UserData> userDatabase;  // Key: username, Value: UserData
 
-    public MemoryAuthDAO() {
-        authDatabase = new HashMap<>();
+    public MemoryUserDAO() {
+        userDatabase = new HashMap<>();
     }
 
     @Override
-    public void addAuth(AuthData authData) {
-        if (authData == null || authData.authToken() == null) {
-            throw new IllegalArgumentException("Auth data cannot be null");
+    public UserData getUser(String username) throws DataAccessException {
+        if (username == null) {
+            throw new IllegalArgumentException("Username cannot be null");
         }
-        authDatabase.put(authData.authToken(), authData);
+
+        UserData user = userDatabase.get(username);
+        if (user == null) {
+            throw new DataAccessException("User not found: " + username);
+        }
+        return user;
     }
 
     @Override
-    public void deleteAuth(String authToken) {
-        if (authToken == null) {
-            throw new IllegalArgumentException("Auth token cannot be null");
+    public void createUser(UserData user) throws AlreadyExistsException {
+        if (user == null || user.username() == null) {
+            throw new IllegalArgumentException("User data cannot be null");
         }
-        authDatabase.remove(authToken);
+
+        if (userDatabase.containsKey(user.username())) {
+            throw new AlreadyExistsException("User already exists: " + user.username());
+        }
+
+        userDatabase.put(user.username(), user);
     }
 
     @Override
-    public AuthData getAuth(String authToken) throws UnauthorizedException {
-        if (authToken == null) {
-            throw new IllegalArgumentException("Auth token cannot be null");
+    public boolean authenticateUser(String username, String password) throws UnauthorizedException {
+        if (username == null || password == null) {
+            throw new IllegalArgumentException("Username and password cannot be null");
         }
 
-        AuthData authData = authDatabase.get(authToken);
-        if (authData == null) {
-            throw new UnauthorizedException("Auth token not found: " + authToken);
+        UserData user = userDatabase.get(username);
+        if (user == null) {
+            throw new UnauthorizedException("User does not exist: " + username);
         }
-        return authData;
+
+        if (!user.password().equals(password)) {
+            throw new UnauthorizedException("Incorrect password for user: " + username);
+        }
+
+        return true;
     }
 
     @Override
     public void clear() {
-        authDatabase.clear();
+        userDatabase.clear();
     }
 }
