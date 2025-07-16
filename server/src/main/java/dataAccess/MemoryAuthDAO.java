@@ -6,69 +6,43 @@ import java.util.HashSet;
 
 public class MemoryAuthDAO implements AuthDAO {
 
-    HashSet<AuthData> db;
+    private HashSet<AuthData> database;
 
     public MemoryAuthDAO() {
-        db = HashSet.newHashSet(16);
-    }
-
-    @Override
-    public void addAuth(String authToken, String username) {
-        db.add(new AuthData(username, authToken));
+        database = HashSet.newHashSet(16);
     }
 
     @Override
     public void addAuth(AuthData authData) {
-        db.add(authData);
+        database.add(authData);
     }
 
     @Override
     public void deleteAuth(String authToken) {
-        for (AuthData authData : db) {
-            if (authData.authToken().equals(authToken)) {
-                db.remove(authData);
+        AuthData toRemove = null;
+        for (AuthData data : database) {
+            if (data.authToken().equals(authToken)) {
+                toRemove = data;
                 break;
             }
+        }
+        if (toRemove != null) {
+            database.remove(toRemove);
         }
     }
 
     @Override
     public AuthData getAuth(String authToken) throws DataAccessException {
-        for (AuthData authData : db) {
-            if (authData.authToken().equals(authToken)) {
-                return authData;
+        for (AuthData data : database) {
+            if (data.authToken().equals(authToken)) {
+                return data;
             }
         }
-        throw new DataAccessException("Auth Token does not exist: " + authToken);
+        throw new DataAccessException("Auth token not found: " + authToken);
     }
 
     @Override
     public void clear() {
-        db = HashSet.newHashSet(16);
-    }
-
-    @Override
-    public void insertAuth(String token, String username) {
-
-    }
-
-    @Override
-    public void insertAuth(AuthData auth) {
-
-    }
-
-    @Override
-    public void removeAuth(String token) {
-
-    }
-
-    @Override
-    public AuthData fetchAuth(String token) throws DataAccessException {
-        return null;
-    }
-
-    @Override
-    public void resetStorage() {
-
+        database = HashSet.newHashSet(16);
     }
 }

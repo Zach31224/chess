@@ -1,79 +1,65 @@
 package dataAccess;
 
 import model.UserData;
+
 import java.util.HashSet;
-import java.util.Set;
 
 public class MemoryUserDAO implements UserDAO {
 
-    private Set<UserData> users;
+    private HashSet<UserData> db;
 
     public MemoryUserDAO() {
-        users = new HashSet<>(16);
+        db = HashSet.newHashSet(16);
     }
 
     @Override
-    public UserData getUser(String username) throws DataAccessException {
-        for (UserData user : users) {
+    public void getUser(String username) throws DataAccessException {
+        for (UserData user : db) {
             if (user.username().equals(username)) {
-                return user;
+                return;
             }
         }
         throw new DataAccessException("User not found: " + username);
     }
 
     @Override
-    public void createUser(String username, String password, String email) throws DataAccessException {
-        if (userExists(username)) {
-            throw new DataAccessException("User already exists: " + username);
+    public void createUser(UserData user) throws DataAccessException {
+        try {
+            getUser(user.username());
         }
-        users.add(new UserData(username, password, email));
+        catch (DataAccessException e) {
+            db.add(user);
+            return;
+        }
+
+        throw new DataAccessException("User already exists: " + user.username());
     }
 
-    public void createUser(UserData user) throws DataAccessException {
-        if (userExists(user.username())) {
-            throw new DataAccessException("User already exists: " + user.username());
-        }
-        users.add(user);
+
+
+
+    @Override
+    public void clear() {
+        db = HashSet.newHashSet(16);
     }
 
     @Override
     public boolean authenticateUser(String username, String password) throws DataAccessException {
-        UserData user = getUser(username);
-        return user.password().equals(password);
-    }
-
-    @Override
-    public void clear() {
-        users.clear();
-    }
-
-    @Override
-    public UserData findUserByUsername(String username) {
-        return null;
-    }
-
-    @Override
-    public void addUser(String username, String password, String email) {
-
-    }
-
-    @Override
-    public boolean validateCredentials(String username, String password) {
-        return false;
-    }
-
-    @Override
-    public void reset() {
-
-    }
-
-    private boolean userExists(String username) {
-        for (UserData user : users) {
+        boolean userExists = false;
+        for (UserData user : db) {
             if (user.username().equals(username)) {
+                userExists = true;
+            }
+            if (user.username().equals(username) &&
+                    user.password().equals(password)) {
                 return true;
             }
         }
-        return false;
+        if (userExists) {
+            return false;
+        }
+        else {
+            throw new DataAccessException("User does not exist: " + username);
+        }
     }
 }

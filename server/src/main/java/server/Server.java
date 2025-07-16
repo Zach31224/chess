@@ -3,45 +3,45 @@ package server;
 import com.google.gson.Gson;
 import dataAccess.*;
 import service.GameService;
-import service.UserAuthService;
+import service.UserService;
 import spark.*;
 
 public class Server {
 
-    private final UserDAO userDAO;
-    private final AuthDAO authDAO;
-    private final GameDAO gameDAO;
+    private UserDAO userDAO;
+    private AuthDAO authDAO;
+    private GameDAO gameDAO;
 
-    private final UserAuthService authService;
-    private final GameService gameService;
+    private UserService userService;
+    private GameService gameService;
 
-    private final UserAuthHandler authHandler;
-    private final GameHandler gameHandler;
+    private UserHandler userHandler;
+    private GameHandler gameHandler;
 
     public Server() {
-        // Initialize DAOs
         userDAO = new MemoryUserDAO();
         authDAO = new MemoryAuthDAO();
         gameDAO = new MemoryGameDAO();
 
-        // Initialize services with DAOs
-        authService = new UserAuthService(userDAO, authDAO);
-        gameService = new GameService(gameDAO);
+        userService = new UserService(userDAO, authDAO);
+        gameService = new GameService(gameDAO, authDAO);
 
-        // Create route handlers with services
-        authHandler = new UserAuthHandler(authService);
+        userHandler = new UserHandler(userService);
         gameHandler = new GameHandler(gameService);
     }
 
-    public int run(int desiredPort) {
-        Spark.port(desiredPort);
+    public int run(int port) {
+        Spark.port(port);
         Spark.staticFiles.location("web");
 
-        // Register endpoints
-        Spark.post("/user", authHandler::handleRegister);
-        Spark.delete("/db", this::handleClear);
+        Spark.delete("/db", this::clear);
+        Spark.post("/user", userHandler::register);
+        Spark.post("/session", userHandler::login);
+        Spark.delete("/session", userHandler::logout);
 
-        // TODO: Add more routes for login, games, etc.
+        Spark.get("/game", gameHandler::listGames);
+        Spark.post("/game", gameHandler::createGame);
+        Spark.put("/game", gameHandler::joinGame);
 
         Spark.awaitInitialization();
         return Spark.port();
@@ -52,18 +52,17 @@ public class Server {
         Spark.awaitStop();
     }
 
-    private Object handleClear(Request req, Response res) {
+    private Object clear(Request req, Response resp) {
         try {
-            authService.clear();
+            userService.clear();
             gameService.clear();
 
-            res.status(200);
+            resp.status(200);
             return "{}";
-        } catch (Exception ex) {
-            res.status(500);
-            return new Gson().toJson(new ErrorMessage("Error: " + ex.getMessage()));
+        } catch (Exception e) {
+            resp.status(500);
+            String errMsg = new Gson().toJson(e.getMessage());
+            return String.format("{ \"message\": \"Error: %s\"}", errMsg);
         }
     }
-
-    private record ErrorMessage(String message) {}
 }
