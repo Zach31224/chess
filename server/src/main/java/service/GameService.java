@@ -4,13 +4,16 @@ import dataAccess.GameDAO;
 
 public class GameService {
 
-    GameDAO gameDAO;
+    private final GameDAO gameStorage;
 
-    public GameService(GameDAO gameDAO) {
-        this.gameDAO = gameDAO;
+    public GameService(GameDAO gameStorage) {
+        this.gameStorage = gameStorage;
+    }
+
+    public void reset() {
+        gameStorage.clear();
     }
 
     public void clear() {
-        gameDAO.clear();
     }
 }

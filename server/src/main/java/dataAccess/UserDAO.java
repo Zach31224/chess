@@ -13,4 +13,12 @@ public interface UserDAO {
     boolean authenticateUser(String username, String password) throws DataAccessException;
 
     void clear();
+
+    UserData findUserByUsername(String username);
+
+    void addUser(String username, String password, String email);
+
+    boolean validateCredentials(String username, String password);
+
+    void reset();
 }
