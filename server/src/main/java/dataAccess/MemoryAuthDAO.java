@@ -1,48 +1,47 @@
 package dataAccess;
 
 import model.AuthData;
-
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MemoryAuthDAO implements AuthDAO {
-
-    private HashSet<AuthData> database;
+    private final Map<String, AuthData> authDatabase;  // Key: authToken, Value: AuthData
 
     public MemoryAuthDAO() {
-        database = HashSet.newHashSet(16);
+        authDatabase = new HashMap<>();
     }
 
     @Override
     public void addAuth(AuthData authData) {
-        database.add(authData);
+        if (authData == null || authData.authToken() == null) {
+            throw new IllegalArgumentException("Auth data cannot be null");
+        }
+        authDatabase.put(authData.authToken(), authData);
     }
 
     @Override
     public void deleteAuth(String authToken) {
-        AuthData toRemove = null;
-        for (AuthData data : database) {
-            if (data.authToken().equals(authToken)) {
-                toRemove = data;
-                break;
-            }
+        if (authToken == null) {
+            throw new IllegalArgumentException("Auth token cannot be null");
         }
-        if (toRemove != null) {
-            database.remove(toRemove);
-        }
+        authDatabase.remove(authToken);
     }
 
     @Override
-    public AuthData getAuth(String authToken) throws DataAccessException {
-        for (AuthData data : database) {
-            if (data.authToken().equals(authToken)) {
-                return data;
-            }
+    public AuthData getAuth(String authToken) throws UnauthorizedException {
+        if (authToken == null) {
+            throw new IllegalArgumentException("Auth token cannot be null");
         }
-        throw new DataAccessException("Auth token not found: " + authToken);
+
+        AuthData authData = authDatabase.get(authToken);
+        if (authData == null) {
+            throw new UnauthorizedException("Auth token not found: " + authToken);
+        }
+        return authData;
     }
 
     @Override
     public void clear() {
-        database = HashSet.newHashSet(16);
+        authDatabase.clear();
     }
 }
