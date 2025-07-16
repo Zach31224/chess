@@ -4,58 +4,47 @@ import dataAccess.*;
 import model.AuthData;
 import model.UserData;
 
-import java.util.UUID;
-
 public class UserService {
-
-    UserDAO userDAO;
-    AuthDAO authDAO;
+    private final UserDAO userDAO;
+    private final AuthDAO authDAO;
 
     public UserService(UserDAO userDAO, AuthDAO authDAO) {
         this.userDAO = userDAO;
         this.authDAO = authDAO;
     }
 
-    public AuthData createUser(UserData userData) throws DataAccessException, BadRequestException {
-        if (userData.username() == null || userData.password() == null) {
-            throw new BadRequestException("Missing username or password");
-        }
-
+    public AuthData register(UserData user) throws ServiceException {
         try {
-            userDAO.getUser(userData.username());
-            // If we get here, the user already exists
-            throw new BadRequestException("User already exists");
+            userDAO.createUser(user);
+            return authDAO.createAuth(user.username());
         } catch (DataAccessException e) {
-            // This is expected — user not found, good to proceed
-        }
-
-        userDAO.createUser(userData);
-        String authToken = UUID.randomUUID().toString();
-        AuthData authData = new AuthData(userData.username(), authToken);
-        authDAO.addAuth(authData);
-
-        return authData;
-    }
-
-    public AuthData loginUser(UserData userData) throws DataAccessException {
-        boolean userAuthenticated = userDAO.authenticateUser(userData.username(), userData.password());
-
-        if (userAuthenticated) {
-            String authToken = UUID.randomUUID().toString();
-            AuthData authData = new AuthData(userData.username(), authToken);
-            authDAO.addAuth(authData);
-            return authData;
-        } else {
-            throw new DataAccessException("Password is incorrect");
+            if (e.getMessage().contains("already taken")) {
+                throw new ServiceException("HTTP 403 " + e.getMessage());
+            }
+            throw new ServiceException("HTTP 400 " + e.getMessage());
         }
     }
 
-    public void logoutUser(String authToken) throws DataAccessException {
-        authDAO.getAuth(authToken); // Will throw if not found
-        authDAO.deleteAuth(authToken);
+    public AuthData login(String username, String password) throws ServiceException {
+        try {
+            if (!userDAO.authenticateUser(username, password)) {
+                throw new ServiceException("HTTP 401 Error: unauthorized");
+            }
+            return authDAO.createAuth(username);
+        } catch (DataAccessException e) {
+            throw new ServiceException("HTTP 401 Error: unauthorized");
+        }
     }
 
-    public void clear() {
+    public void logout(String authToken) throws ServiceException {
+        try {
+            authDAO.deleteAuth(authToken);
+        } catch (DataAccessException e) {
+            throw new ServiceException("HTTP 401 Error: unauthorized");
+        }
+    }
+
+    public void clear() throws DataAccessException {
         userDAO.clear();
         authDAO.clear();
     }

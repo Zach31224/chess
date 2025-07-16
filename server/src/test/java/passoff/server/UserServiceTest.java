@@ -5,6 +5,7 @@ import model.AuthData;
 import model.UserData;
 import org.junit.jupiter.api.*;
 import service.UserService;
+import service.ServiceException;
 
 public class UserServiceTest {
 
@@ -22,7 +23,7 @@ public class UserServiceTest {
     }
 
     @BeforeEach
-    void resetBeforeTest() {
+    void resetBeforeTest() throws DataAccessException {
         userDAO.clear();
         authDAO.clear();
         defaultUser = new UserData("Username", "password", "email");
@@ -30,55 +31,54 @@ public class UserServiceTest {
 
     @Test
     @DisplayName("Create Valid User")
-    void testCreateUserSuccess() throws BadRequestException, DataAccessException {
-        AuthData auth = userService.createUser(defaultUser);
+    void testCreateUserSuccess() throws Exception {
+        AuthData auth = userService.register(defaultUser);
         Assertions.assertEquals(authDAO.getAuth(auth.authToken()), auth);
     }
 
     @Test
     @DisplayName("Create Duplicate User")
-    void testCreateUserFailure() throws BadRequestException, DataAccessException {
-        userService.createUser(defaultUser);
-        Assertions.assertThrows(BadRequestException.class, () -> userService.createUser(defaultUser));
+    void testCreateUserFailure() throws Exception {
+        userService.register(defaultUser);
+        Assertions.assertThrows(ServiceException.class, () -> userService.register(defaultUser));
     }
 
     @Test
     @DisplayName("Login with Correct Credentials")
     void testLoginSuccess() throws Exception {
-        userService.createUser(defaultUser);
-        AuthData auth = userService.loginUser(defaultUser);
+        userService.register(defaultUser);
+        AuthData auth = userService.login(defaultUser.username(), defaultUser.password());
         Assertions.assertEquals(authDAO.getAuth(auth.authToken()), auth);
     }
 
     @Test
     @DisplayName("Login with Invalid Credentials")
-    void testLoginFailure() throws BadRequestException, DataAccessException {
-        Assertions.assertThrows(UnauthorizedException.class, () -> userService.loginUser(defaultUser));
+    void testLoginFailure() throws Exception {
+        Assertions.assertThrows(ServiceException.class, () -> userService.login(defaultUser.username(), "wrongPass"));
 
-        userService.createUser(defaultUser);
-        var invalidUser = new UserData(defaultUser.username(), "wrongPass", defaultUser.email());
-        Assertions.assertThrows(UnauthorizedException.class, () -> userService.loginUser(invalidUser));
+        userService.register(defaultUser);
+        Assertions.assertThrows(ServiceException.class, () -> userService.login(defaultUser.username(), "wrongPass"));
     }
 
     @Test
     @DisplayName("Logout with Valid Token")
     void testLogoutSuccess() throws Exception {
-        AuthData auth = userService.createUser(defaultUser);
-        userService.logoutUser(auth.authToken());
+        AuthData auth = userService.register(defaultUser);
+        userService.logout(auth.authToken());
         Assertions.assertThrows(DataAccessException.class, () -> authDAO.getAuth(auth.authToken()));
     }
 
     @Test
     @DisplayName("Logout with Invalid Token")
-    void testLogoutFailure() throws BadRequestException, DataAccessException {
-        userService.createUser(defaultUser);
-        Assertions.assertThrows(UnauthorizedException.class, () -> userService.logoutUser("invalidToken"));
+    void testLogoutFailure() throws Exception {
+        userService.register(defaultUser);
+        Assertions.assertThrows(ServiceException.class, () -> userService.logout("invalidToken"));
     }
 
     @Test
     @DisplayName("Clear All Data")
-    void testClearSuccess() throws BadRequestException, DataAccessException {
-        AuthData auth = userService.createUser(defaultUser);
+    void testClearSuccess() throws Exception {
+        AuthData auth = userService.register(defaultUser);
         userService.clear();
 
         Assertions.assertThrows(DataAccessException.class, () -> userDAO.getUser(defaultUser.username()));
