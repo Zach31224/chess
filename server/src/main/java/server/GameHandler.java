@@ -1,18 +1,18 @@
 package server;
 
 import com.google.gson.Gson;
-import dataAccess.DataAccessException;
-import dataAccess.UnauthorizedException;
+import com.google.gson.JsonSyntaxException;
 import model.GameData;
 import service.GameService;
+import service.ServiceException;
 import spark.Request;
 import spark.Response;
 
-import java.util.HashSet;
+import java.util.Collection;
 
 public class GameHandler {
-
     private final GameService gameService;
+    private final Gson gson = new Gson();
 
     public GameHandler(GameService gameService) {
         this.gameService = gameService;
@@ -21,77 +21,89 @@ public class GameHandler {
     public Object listGames(Request req, Response resp) {
         try {
             String authToken = req.headers("authorization");
-            HashSet<GameData> games = gameService.listGames(authToken);
+            if (authToken == null) {
+                resp.status(401);
+                return gson.toJson(new ErrorResponse("Error: unauthorized"));
+            }
+
+            Collection<GameData> games = gameService.listGames(authToken);
             resp.status(200);
-            String gamesJson = new Gson().toJson(games);
-            return String.format("{ \"games\": %s }", gamesJson);
-        } catch (DataAccessException e) {
+            return gson.toJson(new GameListResponse(games));
+        } catch (ServiceException e) {
             resp.status(401);
-            return "{ \"message\": \"Error: unauthorized\" }";
+            return gson.toJson(new ErrorResponse("Error: unauthorized"));
         } catch (Exception e) {
             resp.status(500);
-            return String.format("{ \"message\": \"Error: %s\" }", e.getMessage());
+            return gson.toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     public Object createGame(Request req, Response resp) {
-        if (!req.body().contains("\"gameName\":")) {
-            resp.status(400);
-            return "{ \"message\": \"Error: bad request\" }";
-        }
-
         try {
             String authToken = req.headers("authorization");
-            int gameID = gameService.createGame(authToken);
+            if (authToken == null) {
+                resp.status(401);
+                return gson.toJson(new ErrorResponse("Error: unauthorized"));
+            }
+
+            CreateGameRequest request = gson.fromJson(req.body(), CreateGameRequest.class);
+            if (request == null || request.gameName() == null || request.gameName().isEmpty()) {
+                resp.status(400);
+                return gson.toJson(new ErrorResponse("Error: bad request"));
+            }
+
+            int gameID = gameService.createGame(authToken, request.gameName());
             resp.status(200);
-            return String.format("{ \"gameID\": %d }", gameID);
-        } catch (DataAccessException e) {
+            return gson.toJson(new CreateGameResponse(gameID));
+        } catch (JsonSyntaxException e) {
+            resp.status(400);
+            return gson.toJson(new ErrorResponse("Error: bad request"));
+        } catch (ServiceException e) {
             resp.status(401);
-            return "{ \"message\": \"Error: unauthorized\" }";
+            return gson.toJson(new ErrorResponse("Error: unauthorized"));
         } catch (Exception e) {
             resp.status(500);
-            return String.format("{ \"message\": \"Error: %s\" }", e.getMessage());
+            return gson.toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     public Object joinGame(Request req, Response resp) {
-        if (!req.body().contains("\"gameID\":")) {
-            resp.status(400);
-            return "{ \"message\": \"Error: bad request\" }";
-        }
-
         try {
             String authToken = req.headers("authorization");
-
-            // Local record class for deserialization
-            record JoinGameData(String playerColor, int gameID) {}
-
-            JoinGameData joinData = new Gson().fromJson(req.body(), JoinGameData.class);
-            int joinStatus = gameService.joinGame(authToken, joinData.gameID(), joinData.playerColor());
-
-            if (joinStatus == 0) {
-                resp.status(200);
-                return "{}";
-            } else if (joinStatus == 1) {
-                resp.status(400);
-                return "{ \"message\": \"Error: bad request\" }";
-            } else if (joinStatus == 2) {
-                resp.status(403);
-                return "{ \"message\": \"Error: already taken\" }";
+            if (authToken == null) {
+                resp.status(401);
+                return gson.toJson(new ErrorResponse("Error: unauthorized"));
             }
 
+            JoinGameRequest request = gson.fromJson(req.body(), JoinGameRequest.class);
+            if (request == null || request.gameID() <= 0) {
+                resp.status(400);
+                return gson.toJson(new ErrorResponse("Error: bad request"));
+            }
+
+            gameService.joinGame(authToken, request.gameID(), request.playerColor());
             resp.status(200);
             return "{}";
-
-        } catch (DataAccessException e) {
+        } catch (JsonSyntaxException e) {
             resp.status(400);
-            return "{ \"message\": \"Error: bad request\" }";
-        } catch (UnauthorizedException e) {
+            return gson.toJson(new ErrorResponse("Error: bad request"));
+        } catch (ServiceException e) {
+            if (e.getMessage().contains("403")) {
+                resp.status(403);
+                return gson.toJson(new ErrorResponse("Error: already taken"));
+            }
             resp.status(401);
-            return "{ \"message\": \"Error: unauthorized\" }";
+            return gson.toJson(new ErrorResponse("Error: unauthorized"));
         } catch (Exception e) {
             resp.status(500);
-            return String.format("{ \"message\": \"Error: %s\" }", e.getMessage());
+            return gson.toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
+
+    // Response and Request record classes
+    private record GameListResponse(Collection<GameData> games) {}
+    private record CreateGameResponse(int gameID) {}
+    private record CreateGameRequest(String gameName) {}
+    private record JoinGameRequest(String playerColor, int gameID) {}
+    private record ErrorResponse(String message) {}
 }

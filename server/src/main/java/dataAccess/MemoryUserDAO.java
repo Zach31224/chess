@@ -1,53 +1,33 @@
-// File: dataAccess/MemoryUserDAO.java
 package dataAccess;
 
 import model.UserData;
-
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MemoryUserDAO implements UserDAO {
+    private final Map<String, UserData> userDatabase = new HashMap<>(); // key: username
 
-    private HashSet<UserData> db;
-
-    public MemoryUserDAO() {
-        db = HashSet.newHashSet(16);
-    }
-
-    @Override
     public UserData getUser(String username) throws DataAccessException {
-        for (UserData user : db) {
-            if (user.username().equals(username)) {
-                return user;
-            }
+        UserData user = userDatabase.get(username);
+        if (user == null) {
+            throw new DataAccessException("User not found");
         }
-        throw new DataAccessException("User not found: " + username);
+        return user;
     }
 
-    @Override
-    public void createUser(UserData user) {
-        db.add(user);
+    public void createUser(UserData user) throws DataAccessException {
+        if (userDatabase.containsKey(user.username())) {
+            throw new DataAccessException("Error: already taken");
+        }
+        userDatabase.put(user.username(), user);
     }
 
-    @Override
     public boolean authenticateUser(String username, String password) throws DataAccessException {
-        boolean userExists = false;
-        for (UserData user : db) {
-            if (user.username().equals(username)) {
-                userExists = true;
-            }
-            if (user.username().equals(username) && user.password().equals(password)) {
-                return true;
-            }
-        }
-        if (userExists) {
-            return false;
-        } else {
-            throw new DataAccessException("User does not exist: " + username);
-        }
+        UserData user = getUser(username);
+        return user.password().equals(password);
     }
 
-    @Override
     public void clear() {
-        db = HashSet.newHashSet(16);
+        userDatabase.clear();
     }
 }

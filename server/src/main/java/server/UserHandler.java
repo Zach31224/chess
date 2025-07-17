@@ -1,17 +1,16 @@
 package server;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import dataAccess.DataAccessException;
 import model.AuthData;
 import model.UserData;
 import service.UserService;
+import service.ServiceException;
 import spark.Request;
 import spark.Response;
 
 public class UserHandler {
-
     private final UserService userService;
+    private final Gson gson = new Gson();
 
     public UserHandler(UserService userService) {
         this.userService = userService;
@@ -19,58 +18,67 @@ public class UserHandler {
 
     public Object register(Request req, Response resp) {
         try {
-            UserData userData = new Gson().fromJson(req.body(), UserData.class);
-            AuthData authData = userService.createUser(userData);
-
-            if (authData == null) {
+            UserData user = gson.fromJson(req.body(), UserData.class);
+            if (user.username() == null || user.password() == null || user.email() == null) {
                 resp.status(400);
-                return "{ \"message\": \"Error: bad request\" }";
-            } else {
-                resp.status(200);
-                return new Gson().toJson(authData);
+                return gson.toJson(new ErrorResponse("Error: bad request"));
             }
 
-        } catch (DataAccessException e) {
-            resp.status(403);
-            return "{ \"message\": \"Error: already taken\" }";
-        } catch (JsonSyntaxException e) {
+            AuthData authData = userService.register(user);
+            resp.status(200);
+            return gson.toJson(authData);
+        } catch (ServiceException e) {
+            if (e.getMessage().contains("403")) {
+                resp.status(403);
+                return gson.toJson(new ErrorResponse("Error: already taken"));
+            }
             resp.status(400);
-            return "{ \"message\": \"Error: bad request\" }";
+            return gson.toJson(new ErrorResponse("Error: bad request"));
         } catch (Exception e) {
             resp.status(500);
-            return String.format("{ \"message\": \"Error: %s\" }", e.getMessage());
+            return gson.toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     public Object login(Request req, Response resp) {
         try {
-            UserData userData = new Gson().fromJson(req.body(), UserData.class);
-            AuthData authData = userService.loginUser(userData);
+            UserData user = gson.fromJson(req.body(), UserData.class);
+            if (user.username() == null || user.password() == null) {
+                resp.status(400);
+                return gson.toJson(new ErrorResponse("Error: bad request"));
+            }
 
+            AuthData authData = userService.login(user.username(), user.password());
             resp.status(200);
-            return new Gson().toJson(authData);
-
-        } catch (DataAccessException e) {
+            return gson.toJson(authData);
+        } catch (ServiceException e) {
             resp.status(401);
-            return "{ \"message\": \"Error: unauthorized\" }";
+            return gson.toJson(new ErrorResponse("Error: unauthorized"));
         } catch (Exception e) {
             resp.status(500);
-            return String.format("{ \"message\": \"Error: %s\" }", e.getMessage());
+            return gson.toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
 
     public Object logout(Request req, Response resp) {
         try {
             String authToken = req.headers("authorization");
-            userService.logoutUser(authToken);
+            if (authToken == null) {
+                resp.status(401);
+                return gson.toJson(new ErrorResponse("Error: unauthorized"));
+            }
+
+            userService.logout(authToken);
             resp.status(200);
             return "{}";
-        } catch (DataAccessException e) {
+        } catch (ServiceException e) {
             resp.status(401);
-            return "{ \"message\": \"Error: unauthorized\" }";
+            return gson.toJson(new ErrorResponse("Error: unauthorized"));
         } catch (Exception e) {
             resp.status(500);
-            return String.format("{ \"message\": \"Error: %s\" }", e.getMessage());
+            return gson.toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
+
+    private record ErrorResponse(String message) {}
 }

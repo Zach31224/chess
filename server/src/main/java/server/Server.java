@@ -7,25 +7,22 @@ import service.UserService;
 import spark.*;
 
 public class Server {
+    private final UserDAO userDAO;
+    private final AuthDAO authDAO;
+    private final GameDAO gameDAO;
 
-    private UserDAO userDAO;
-    private AuthDAO authDAO;
-    private GameDAO gameDAO;
+    private final UserService userService;
+    private final GameService gameService;
 
-    private UserService userService;
-    private GameService gameService;
-
-    private UserHandler userHandler;
-    private GameHandler gameHandler;
+    private final UserHandler userHandler;
+    private final GameHandler gameHandler;
 
     public Server() {
         userDAO = new MemoryUserDAO();
         authDAO = new MemoryAuthDAO();
         gameDAO = new MemoryGameDAO();
-
         userService = new UserService(userDAO, authDAO);
         gameService = new GameService(gameDAO, authDAO);
-
         userHandler = new UserHandler(userService);
         gameHandler = new GameHandler(gameService);
     }
@@ -34,14 +31,17 @@ public class Server {
         Spark.port(port);
         Spark.staticFiles.location("web");
 
+        // Register endpoints
         Spark.delete("/db", this::clear);
         Spark.post("/user", userHandler::register);
         Spark.post("/session", userHandler::login);
         Spark.delete("/session", userHandler::logout);
-
         Spark.get("/game", gameHandler::listGames);
         Spark.post("/game", gameHandler::createGame);
         Spark.put("/game", gameHandler::joinGame);
+        Spark.after((request, response) -> {
+            response.type("application/json");
+        });
 
         Spark.awaitInitialization();
         return Spark.port();
@@ -54,15 +54,16 @@ public class Server {
 
     private Object clear(Request req, Response resp) {
         try {
-            userService.clear();
-            gameService.clear();
-
+            userDAO.clear();
+            authDAO.clear();
+            gameDAO.clear();
             resp.status(200);
             return "{}";
         } catch (Exception e) {
             resp.status(500);
-            String errMsg = new Gson().toJson(e.getMessage());
-            return String.format("{ \"message\": \"Error: %s\"}", errMsg);
+            return new Gson().toJson(new ErrorResponse("Error: " + e.getMessage()));
         }
     }
+
+    private record ErrorResponse(String message) {}
 }
