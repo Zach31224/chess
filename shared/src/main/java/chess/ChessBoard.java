@@ -66,8 +66,12 @@ public class ChessBoard {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof ChessBoard other)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof ChessBoard other)) {
+            return false;
+        }
         return Arrays.deepEquals(layout, other.layout);
     }
 

@@ -27,8 +27,12 @@ public class ChessPosition {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof ChessPosition other)) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof ChessPosition other)) {
+            return false;
+        }
         return rank == other.rank && file == other.file;
     }
 

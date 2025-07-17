@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Objects;
 
 /**
- *  Manages the logic of a chess game, including moves, turns, check, checkmate, and stalemate.
+ * Manages the logic of a chess game, including moves, turns, check, checkmate, and stalemate.
  * <p>
  * Note: You can add to this class, but you may not alter
  * signature of the existing methods.
@@ -92,7 +92,7 @@ public class ChessGame {
             throw new InvalidMoveException("No piece at starting position");
         }
 
-        boolean isCorrectTurn = getTeamTurn() == movingPiece.getTeamColor();
+        boolean isCorrectTurn = (getTeamTurn() == movingPiece.getTeamColor());
         Collection<ChessMove> legalMoves = validMoves(move.getStartPosition());
 
         if (legalMoves == null || legalMoves.isEmpty()) {
@@ -129,7 +129,9 @@ public class ChessGame {
      */
     public boolean isInCheck(TeamColor teamColor) {
         ChessPosition kingLocation = findKingPosition(teamColor);
-        if (kingLocation == null) return false;
+        if (kingLocation == null) {
+            return false;
+        }
 
         // Check if any opponent piece can attack the king
         for (int row = 1; row <= 8; row++) {
@@ -157,25 +159,7 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        if (!isInCheck(teamColor)) {
-            return false;
-        }
-
-        // Check if any valid moves exist for any piece
-        for (int row = 1; row <= 8; row++) {
-            for (int col = 1; col <= 8; col++) {
-                ChessPosition position = new ChessPosition(row, col);
-                ChessPiece piece = board.getPiece(position);
-
-                if (piece != null && piece.getTeamColor() == teamColor) {
-                    Collection<ChessMove> moves = validMoves(position);
-                    if (moves != null && !moves.isEmpty()) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
+        return isInCheck(teamColor) && !hasAnyValidMoves(teamColor);
     }
 
     /**
@@ -186,10 +170,15 @@ public class ChessGame {
      * @return True if the specified team is in stalemate, otherwise false
      */
     public boolean isInStalemate(TeamColor teamColor) {
-        if (isInCheck(teamColor)) {
-            return false;  // Can't be stalemate if in check
-        }
+        return !isInCheck(teamColor) && !hasAnyValidMoves(teamColor);
+    }
 
+    /**
+     * Checks if the specified team has any valid moves remaining
+     * @param teamColor team to check
+     * @return true if team has at least one valid move, false otherwise
+     */
+    private boolean hasAnyValidMoves(TeamColor teamColor) {
         for (int row = 1; row <= 8; row++) {
             for (int col = 1; col <= 8; col++) {
                 ChessPosition position = new ChessPosition(row, col);
@@ -198,12 +187,12 @@ public class ChessGame {
                 if (piece != null && piece.getTeamColor() == teamColor) {
                     Collection<ChessMove> moves = validMoves(position);
                     if (moves != null && !moves.isEmpty()) {
-                        return false;
+                        return true;
                     }
                 }
             }
         }
-        return true;
+        return false;
     }
 
     /**
@@ -241,12 +230,15 @@ public class ChessGame {
     public ChessBoard getBoard() {
         return board;
     }
-    /** correct implementation of hashCode
-     */
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ChessGame chessGame = (ChessGame) o;
         return teamTurn == chessGame.teamTurn &&
                 Objects.equals(board, chessGame.board);
@@ -256,5 +248,4 @@ public class ChessGame {
     public int hashCode() {
         return Objects.hash(teamTurn, board);
     }
-
 }

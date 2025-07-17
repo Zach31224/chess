@@ -1,7 +1,7 @@
 package server;
 
 import com.google.gson.Gson;
-import dataAccess.*;
+import dataaccess.*;
 import service.GameService;
 import service.UserService;
 import spark.*;
@@ -31,14 +31,15 @@ public class Server {
         Spark.port(port);
         Spark.staticFiles.location("web");
 
-        // Register endpoints
-        Spark.delete("/db", this::clear);
-        Spark.post("/user", userHandler::register);
-        Spark.post("/session", userHandler::login);
-        Spark.delete("/session", userHandler::logout);
-        Spark.get("/game", gameHandler::listGames);
-        Spark.post("/game", gameHandler::createGame);
-        Spark.put("/game", gameHandler::joinGame);
+        // Register endpoints using lambda wrappers to match expected Route signature
+        Spark.delete("/db", (req, res) -> clear(req, res));
+        Spark.post("/user", (req, res) -> userHandler.register(req, res));
+        Spark.post("/session", (req, res) -> userHandler.login(req, res));
+        Spark.delete("/session", (req, res) -> userHandler.logout(req, res));
+        Spark.get("/game", (req, res) -> gameHandler.listGames(req, res));
+        Spark.post("/game", (req, res) -> gameHandler.createGame(req, res));
+        Spark.put("/game", (req, res) -> gameHandler.joinGame(req, res));
+
         Spark.after((request, response) -> {
             response.type("application/json");
         });
