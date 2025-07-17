@@ -81,7 +81,15 @@ public class GameHandler {
                 return gson.toJson(new ErrorResponse("Error: bad request"));
             }
 
-            gameService.joinGame(authToken, request.gameID(), request.playerColor());
+            //Check for if white or black
+            String color = request.playerColor();
+            if (color == null ||
+                    (!color.equalsIgnoreCase("WHITE") && !color.equalsIgnoreCase("BLACK"))) {
+                resp.status(400);
+                return gson.toJson(new ErrorResponse("Error: bad request"));
+            }
+
+            gameService.joinGame(authToken, request.gameID(), color);
             resp.status(200);
             return "{}";
         } catch (JsonSyntaxException e) {
@@ -104,6 +112,6 @@ public class GameHandler {
     private record GameListResponse(Collection<GameData> games) {}
     private record CreateGameResponse(int gameID) {}
     private record CreateGameRequest(String gameName) {}
-    private record JoinGameRequest(String playerColor, int gameID) {}
+    private record JoinGameRequest(int gameID, String playerColor) {}
     private record ErrorResponse(String message) {}
 }
