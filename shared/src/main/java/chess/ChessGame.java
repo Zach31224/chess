@@ -83,7 +83,7 @@ public class ChessGame {
     /**
      * Makes a move in a chess game
      *
-     * @param move chess move to preform
+     * @param move chess move to perform
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
@@ -140,13 +140,23 @@ public class ChessGame {
                 ChessPiece piece = board.getPiece(position);
 
                 if (piece != null && piece.getTeamColor() != teamColor) {
-                    Collection<ChessMove> moves = piece.pieceMoves(board, position);
-                    for (ChessMove move : moves) {
-                        if (move.getEndPosition().equals(kingLocation)) {
-                            return true;
-                        }
+                    if (canReachKing(position, piece, kingLocation)) {
+                        return true;
                     }
                 }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Helper method to check if a piece can reach the king
+     */
+    private boolean canReachKing(ChessPosition position, ChessPiece piece, ChessPosition kingLocation) {
+        Collection<ChessMove> moves = piece.pieceMoves(board, position);
+        for (ChessMove move : moves) {
+            if (move.getEndPosition().equals(kingLocation)) {
+                return true;
             }
         }
         return false;
